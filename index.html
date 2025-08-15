@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 0.5rem;
+            object-fit: contain;
+            border: 2px solid #e5e7eb;
+            display: none; /* Esconde a imagem por padrão */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4 font-sans">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Upload de Fotos</h1>
+
+        <!-- Campo de entrada para o nome da foto -->
+        <input type="text" id="photo-name" placeholder="Digite o nome da foto" class="w-full px-4 py-2 mb-4 text-gray-700 bg-gray-200 rounded-md focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500">
+
+        <!-- Botão para escolher/tirar a foto -->
+        <label for="photo-file" class="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 transition-colors duration-200 ease-in-out">
+            Escolher/Tirar Foto
+        </label>
+        <!-- O campo de arquivo que é acionado pelo 'label' acima -->
+        <input type="file" id="photo-file" accept="image/*" capture="camera" class="hidden">
+
+        <!-- Área de pré-visualização da imagem -->
+        <div class="mt-6 flex flex-col items-center">
+            <img id="preview-image" src="#" alt="Pré-visualização da imagem">
+        </div>
+
+        <!-- Botão para enviar os dados -->
+        <button id="upload-button" class="w-full px-4 py-2 mt-6 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200 ease-in-out opacity-50 cursor-not-allowed" disabled>
+            Enviar Foto
+        </button>
+        
+        <!-- Área para mensagens de status -->
+        <p id="status-message" class="mt-4 text-sm text-gray-600"></p>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
