@@ -157,7 +157,7 @@ def create_excel_report(data):
     ws.title = "Relatório de Inspeção"
 
     # Define o cabeçalho da tabela
-    headers = ["Nome da Fábrica", "Nº do Pedido", "Nome do Inspetor", "Data da Inspeção", "Passo", "Anotações", "Link da Foto"]
+    headers = ["Nome da Fábrica", "Nº do Pedido", "Nome do Inspetor", "Data da Inspeção", "Passo", "Anotações", "Caminho da Foto"]
     ws.append(headers)
 
     # Aplica formatação ao cabeçalho (negrito e alinhado)
@@ -176,7 +176,7 @@ def create_excel_report(data):
     # Ajusta a largura das colunas
     for col in ws.columns:
         max_length = 0
-        column = col[0].column_letter # Obtém a letra da coluna (e.g. 'A')
+        column = col[0].column_letter
         for cell in col:
             try:
                 if len(str(cell.value)) > max_length:
@@ -186,10 +186,13 @@ def create_excel_report(data):
         adjusted_width = (max_length + 2)
         ws.column_dimensions[column].width = adjusted_width
 
-    # Salva o arquivo com o nome da inspeção
-    fabrica_name = data['inspection_data']['fabrica'].replace(' ', '_')
-    pedido_num = data['inspection_data']['pedido'].replace(' ', '_')
-    file_name = f"relatorio_{fabrica_name}_{pedido_num}.xlsx"
+    # Sanitize o nome da fábrica e o número do pedido para o nome do arquivo
+    sanitized_fabrica = ''.join(c for c in data['inspection_data']['fabrica'] if c.isalnum())
+    sanitized_pedido = ''.join(c for c in data['inspection_data']['pedido'] if c.isalnum())
+    
+    # Cria o nome do arquivo com os nomes sanitizados
+    file_name = f"relatorio_{sanitized_fabrica}_{sanitized_pedido}.xlsx"
+    
     wb.save(file_name)
     print(f"Relatório Excel salvo em: {file_name}")
 
