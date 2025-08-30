@@ -5,11 +5,12 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import Screen, ScreenManager
 
-# Importa as classes necessárias para a próxima tela
-from kivy.uix.image import Image
 from kivy.uix.camera import Camera
 import os
 import time
+
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
 
 # Classe da tela inicial para a entrada de dados
 class MainScreen(Screen):
@@ -61,6 +62,7 @@ class InspectionScreen(Screen):
         # Lista de passos da inspeção. Você pode personalizar isso facilmente.
         self.inspection_steps = ['Foto do Produto', 'Cor do Produto', 'Caixa/Frente e Verso', 'Caixa/Laterais', 'Outros Detalhes']
         self.current_step_index = 0
+        self.inspection_report_data = []  # Lista para armazenar os dados do relatório
 
         # Layout da tela de inspeção
         main_layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
@@ -90,8 +92,21 @@ class InspectionScreen(Screen):
         self.add_widget(main_layout)
 
     def take_photo(self, instance):
-        # Cria uma pasta para as fotos, se ela não existir
-        folder_name = f"relatorio_{self.inspection_data['fabrica'].replace(' ', '_')}_{self.inspection_data['pedido']}"
+        # Sanitize o nome da fábrica para evitar caracteres inválidos
+        sanitized_fabrica = ''.join(c for c in self.inspection_data['fabrica'] if c.isalnum() or c in (' ', '_'))
+        sanitized_fabrica = sanitized_fabrica.strip().replace(' ', '_')
+
+        # Sanitize o número do pedido
+        sanitized_pedido = ''.join(c for c in self.inspection_data['pedido'] if c.isalnum() or c in (' ', '_'))
+        sanitized_pedido = sanitized_pedido.strip().replace(' ', '_')
+
+        # Cria o nome da pasta com os nomes sanitizados
+        folder_name = f"relatorio_{sanitized_fabrica}_{sanitized_pedido}"
+        
+        # Se o nome da pasta estiver vazio, usa um nome padrão
+        if not folder_name.strip():
+            folder_name = "relatorio_sem_nome"
+
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
 
@@ -104,20 +119,79 @@ class InspectionScreen(Screen):
         self.camera_widget.export_to_png(photo_path)
         print(f"Foto salva em: {photo_path}")
 
-    def next_step(self, instance):
-        # Limpa o campo de anotações para o próximo passo
+        # Salva o caminho da foto e as anotações
+        step_data = {
+            'step_name': self.step_label.text,
+            'notes': self.notes_input.text,
+            'photo_path': photo_path
+        }
+        self.inspection_report_data.append(step_data)
+
+        # Limpa o campo de anotações
         self.notes_input.text = ''
         
-        # Avança para o próximo passo
+        # Avança para o próximo passo (opcional, mas torna o fluxo mais ágil)
+        self.next_step(instance)
+
+    def next_step(self, instance):
+        # Avança para o próximo passo, se houver
         if self.current_step_index < len(self.inspection_steps) - 1:
             self.current_step_index += 1
             self.step_label.text = self.inspection_steps[self.current_step_index]
+        # Se for o último passo, gera o relatório
         else:
-            print("Inspeção concluída!")
-            # Futuramente, a lógica para gerar o Excel virá aqui.
-            # Voltamos para a tela inicial
-            self.manager.current = 'main_screen'
+            print("Inspeção concluída! Gerando relatório Excel...")
+            # Dados completos para o relatório
+            full_report_data = {
+                'inspection_data': self.inspection_data,
+                'report_data': self.inspection_report_data
+            }
+            create_excel_report(full_report_data)
+            self.manager.current = 'main_screen' # Retorna para a tela inicial
 
+# Função para criar o relatório em Excel
+def create_excel_report(data):
+    # Cria uma nova planilha do Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Relatório de Inspeção"
+
+    # Define o cabeçalho da tabela
+    headers = ["Nome da Fábrica", "Nº do Pedido", "Nome do Inspetor", "Data da Inspeção", "Passo", "Anotações", "Link da Foto"]
+    ws.append(headers)
+
+    # Aplica formatação ao cabeçalho (negrito e alinhado)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Preenche a planilha com os dados coletados
+    # As informações gerais da inspeção serão repetidas em cada linha
+    general_info = [data['inspection_data']['fabrica'], data['inspection_data']['pedido'], data['inspection_data']['inspetor'], data['inspection_data']['data']]
+    
+    for row_data in data['report_data']:
+        row = general_info + [row_data['step_name'], row_data['notes'], row_data['photo_path']]
+        ws.append(row)
+
+    # Ajusta a largura das colunas
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter # Obtém a letra da coluna (e.g. 'A')
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column].width = adjusted_width
+
+    # Salva o arquivo com o nome da inspeção
+    fabrica_name = data['inspection_data']['fabrica'].replace(' ', '_')
+    pedido_num = data['inspection_data']['pedido'].replace(' ', '_')
+    file_name = f"relatorio_{fabrica_name}_{pedido_num}.xlsx"
+    wb.save(file_name)
+    print(f"Relatório Excel salvo em: {file_name}")
 
 # Classe principal do aplicativo
 class InspectionApp(App):
